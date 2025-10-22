@@ -1,0 +1,15 @@
+:root {
+  /* Text Colors */
+  --text-primary: #EBDBB2;
+  --text-secondary: #A89984;
+  
+  /* Accent Colors */
+  --accent-primary: #81a38e;
+  
+  /* Background Colors */
+  --bg-primary: #232525;
+  --bg-secondary: #1D2021;
+  --bg-accent: #A3BBAD;
+
+  --card-bg: var(--bg-secondary);
+}
