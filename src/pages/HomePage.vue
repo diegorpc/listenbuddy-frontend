@@ -5,8 +5,8 @@
       <div class="token-card card">
         <h2>Connect Your ListenBrainz Account</h2>
         <p>
-          Enter your ListenBrainz token to view your listening statistics. You can find your
-          token in your ListenBrainz account settings.
+          Enter your ListenBrainz token to view your listening statistics. You can find your token
+          in your ListenBrainz account settings.
         </p>
         <form @submit.prevent="handleTokenSubmit" class="token-form">
           <div class="input-group">
@@ -31,7 +31,7 @@
     <div v-else>
       <header class="home-header">
         <div class="header-title">
-          <span class="header-icon">🎵</span>
+          <MusicalNoteIcon class="header-icon" />
           <h1>{{ listenBrainzName }}'s ListenBrainz Stats</h1>
         </div>
         <button class="logout-btn" @click="handleLogout">Log Out</button>
@@ -96,7 +96,7 @@ import { buildUrl } from '../services/apiRequests'
 import TopListSelector from '../components/TopListSelector.vue'
 import StatCard from '../components/StatCard.vue'
 import WeeklyActivityBarChart from '../components/WeeklyActivityBarChart.vue'
-
+import { MusicalNoteIcon } from '@heroicons/vue/24/outline'
 interface DailyActivityResponse {
   dailyActivity: Record<string, Array<{ hour: number; listen_count: number }>>
   from_ts: number
@@ -215,7 +215,9 @@ const fetchActivityStats = async () => {
         })
         const laData = await laResp.json()
         if (laResp.ok && Array.isArray(laData.activity)) {
-          const firstNonZero: ListeningActivityItem | undefined = laData.activity.find((a: ListeningActivityItem) => a.listen_count > 0)
+          const firstNonZero: ListeningActivityItem | undefined = laData.activity.find(
+            (a: ListeningActivityItem) => a.listen_count > 0,
+          )
           if (firstNonZero && typeof firstNonZero.from_ts === 'number') {
             effectiveFrom = firstNonZero.from_ts
           }
@@ -239,7 +241,6 @@ const fetchActivityStats = async () => {
     // For now, set change to null (can be calculated if we fetch previous period data)
     listenHoursChange.value = null
     dailyPlaysChange.value = null
-
   } catch (err) {
     console.error('Error fetching activity stats:', err)
     statsError.value = true
