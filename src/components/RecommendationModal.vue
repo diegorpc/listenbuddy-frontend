@@ -25,18 +25,14 @@
         <!-- Recommendations List -->
         <div v-else-if="recommendations.length > 0" class="modal-body">
           <TransitionGroup name="rec-fade" tag="div" class="recommendations-list">
-            <div
-              v-for="rec in recommendations"
-              :key="rec.item"
-              class="recommendation-item"
-            >
+            <div v-for="rec in recommendations" :key="rec.item" class="recommendation-item">
               <div v-if="rec.imageUrl" class="rec-image-container">
                 <div v-if="!imageLoadedStates[rec.item]" class="image-loading">
                   <div class="spinner"></div>
                 </div>
-                <img 
-                  :src="rec.imageUrl" 
-                  alt="cover" 
+                <img
+                  :src="rec.imageUrl"
+                  alt="cover"
                   class="rec-image"
                   :class="{ 'image-hidden': !imageLoadedStates[rec.item] }"
                   @load="imageLoadedStates[rec.item] = true"
@@ -50,8 +46,15 @@
                 </div>
                 <div class="rec-reasoning">{{ rec.reasoning }}</div>
               </div>
-              <div class="feedback-buttons">
+              <div
+                class="feedback-buttons"
+                :class="{
+                  'centered-positive': feedbackGiven[rec.item] === 'positive',
+                  'centered-negative': feedbackGiven[rec.item] === 'negative',
+                }"
+              >
                 <button
+                  v-if="feedbackGiven[rec.item] !== 'negative'"
                   class="feedback-btn positive"
                   @click="handleFeedback(rec.item, true)"
                   :disabled="processingFeedback[rec.item]"
@@ -60,6 +63,7 @@
                   <CheckCircleIcon class="icon" />
                 </button>
                 <button
+                  v-if="feedbackGiven[rec.item] !== 'positive'"
                   class="feedback-btn negative"
                   @click="handleFeedback(rec.item, false)"
                   :disabled="processingFeedback[rec.item]"
@@ -84,7 +88,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
-import { getRecommendations, provideFeedback as submitFeedback, generateRecommendationsWithMetadata } from '../services/recommendations'
+import {
+  getRecommendations,
+  provideFeedback as submitFeedback,
+  generateRecommendationsWithMetadata,
+} from '../services/recommendations'
 
 interface Props {
   show: boolean
@@ -112,7 +120,9 @@ const recommendations = ref<RecommendationWithImage[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const processingFeedback = ref<Record<string, boolean>>({})
+const feedbackGiven = ref<Record<string, 'positive' | 'negative' | null>>({})
 const allFetchedItems = ref<Set<string>>(new Set())
+const feedbackItems = ref<Set<string>>(new Set()) // Track items that received feedback
 const imageLoadedStates = ref<Record<string, boolean>>({})
 const sourceItemImageUrl = ref<string | null>(null)
 
@@ -120,7 +130,10 @@ const closeModal = () => {
   emit('close')
 }
 
-const computeCoverUrl = (itemType: 'artist' | 'recording' | 'release-group', mbid: string): string | null => {
+const computeCoverUrl = (
+  itemType: 'artist' | 'recording' | 'release-group',
+  mbid: string,
+): string | null => {
   if (itemType === 'release-group') {
     return `https://coverartarchive.org/release-group/${mbid}/front-250`
   }
@@ -129,18 +142,24 @@ const computeCoverUrl = (itemType: 'artist' | 'recording' | 'release-group', mbi
 }
 
 // Compute source item cover art URL
-watch(() => props.sourceItemMbid, (mbid) => {
-  if (mbid) {
-    sourceItemImageUrl.value = computeCoverUrl(props.itemType, mbid)
-  }
-}, { immediate: true })
+watch(
+  () => props.sourceItemMbid,
+  (mbid) => {
+    if (mbid) {
+      sourceItemImageUrl.value = computeCoverUrl(props.itemType, mbid)
+    }
+  },
+  { immediate: true },
+)
 
 const fetchRecommendations = async (amount: number = 3) => {
   loading.value = true
   error.value = null
   recommendations.value = []
   processingFeedback.value = {}
+  feedbackGiven.value = {}
   allFetchedItems.value = new Set()
+  feedbackItems.value = new Set() // Reset feedback tracking
   imageLoadedStates.value = {}
 
   try {
@@ -152,17 +171,19 @@ const fetchRecommendations = async (amount: number = 3) => {
     }
 
     const items = await getRecommendations(props.userId, props.sourceItemMbid, amount)
-    
+
     if (items.length === 0) {
       // No existing recommendations, try to generate new ones
       console.log('No existing recommendations found, generating new ones...')
       await generateNewRecommendations(amount)
     } else {
-      recommendations.value = items.map(item => ({
+      // Filter out items that already received feedback
+      const filteredItems = items.filter(item => !feedbackItems.value.has(item.item))
+      recommendations.value = filteredItems.map((item) => ({
         ...item,
-        imageUrl: computeCoverUrl(props.itemType, item.item)
+        imageUrl: computeCoverUrl(props.itemType, item.item),
       }))
-      items.forEach(item => allFetchedItems.value.add(item.item))
+      filteredItems.forEach((item) => allFetchedItems.value.add(item.item))
     }
   } catch (err) {
     console.error('Error fetching recommendations:', err)
@@ -180,84 +201,73 @@ const generateNewRecommendations = async (amount: number = 3) => {
       props.sourceItemName,
       props.itemType,
       amount,
-      props.sourceItemMbid
+      props.sourceItemMbid,
     )
-    
+
     // Now fetch the recommendations with reasoning
     // The generateRecommendationsWithMetadata function uses the MBID internally
     // We need to use the same MBID to fetch recommendations
     if (!props.sourceItemMbid) {
       throw new Error('Source item MBID is required to fetch recommendations')
     }
-    
+
     const items = await getRecommendations(props.userId, props.sourceItemMbid, amount)
-    recommendations.value = items.map(item => ({
-      ...item,
-      imageUrl: computeCoverUrl(props.itemType, item.item)
-    }))
-    items.forEach(item => allFetchedItems.value.add(item.item))
+    // Filter out items that already received feedback or are already in the list
+    const filteredItems = items.filter(
+      item => !feedbackItems.value.has(item.item) && 
+              !recommendations.value.some(rec => rec.item === item.item)
+    )
+    recommendations.value.push(
+      ...filteredItems.map((item) => ({
+        ...item,
+        imageUrl: computeCoverUrl(props.itemType, item.item),
+      })),
+    )
+    filteredItems.forEach((item) => allFetchedItems.value.add(item.item))
   } catch (err) {
     console.error('Error generating recommendations:', err)
     throw err
   }
 }
 
-const fetchMoreRecommendations = async (count: number = 1) => {
-  try {
-    if (!props.sourceItemMbid) {
-      return []
-    }
-    // Fetch extra to account for items we've already seen
-    const items = await getRecommendations(props.userId, props.sourceItemMbid, count + 5)
-    
-    // Filter out items we've already seen
-    const newItems = items.filter(item => !allFetchedItems.value.has(item.item))
-    
-    return newItems.slice(0, count).map(item => ({
-      ...item,
-      imageUrl: computeCoverUrl(props.itemType, item.item)
-    }))
-  } catch (err) {
-    console.error('Error fetching more recommendations:', err)
-    return []
-  }
-}
-
 const handleFeedback = async (recommendedItem: string, feedback: boolean) => {
   // Mark as processing to disable buttons
   processingFeedback.value[recommendedItem] = true
+  feedbackGiven.value[recommendedItem] = feedback ? 'positive' : 'negative'
 
   try {
     // Submit feedback
     await submitFeedback(props.userId, recommendedItem, feedback)
 
-    // Remove the item from the list (will trigger fade-out animation)
-    const index = recommendations.value.findIndex(rec => rec.item === recommendedItem)
+    // Add to feedback items to exclude from future fetches
+    feedbackItems.value.add(recommendedItem)
+
+    // Wait for button animation to complete (300ms)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    // Remove the item from the list (will trigger slide-out animation)
+    const index = recommendations.value.findIndex((rec) => rec.item === recommendedItem)
     if (index > -1) {
       recommendations.value.splice(index, 1)
     }
 
-    // Try to fetch a replacement recommendation
-    const newRecs = await fetchMoreRecommendations(1)
-    
-    if (newRecs.length > 0) {
-      // Add new recommendation (will trigger fade-in animation)
-      recommendations.value.push(...newRecs)
-      newRecs.forEach(item => allFetchedItems.value.add(item.item))
-    } else if (recommendations.value.length < 3) {
-      // Generate more recommendations if we're running low
-      console.log('Running low on recommendations, generating more...')
-      try {
-        const neededCount = 3 - recommendations.value.length
-        await generateNewRecommendations(neededCount)
-      } catch (genErr) {
-        console.error('Failed to generate new recommendations:', genErr)
-        // Continue without showing error to user - they can still use existing recs
-      }
+    // Wait a bit for the slide-out animation to start
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    // Generate 1 new recommendation to replace the removed item
+    console.log('Generating 1 new recommendation...')
+    try {
+      await generateNewRecommendations(1)
+    } catch (genErr) {
+      console.error('Failed to generate new recommendation:', genErr)
+      // Continue without showing error to user
     }
   } catch (err) {
     console.error('Error providing feedback:', err)
     alert('Failed to submit feedback. Please try again.')
+    // Reset feedback state on error
+    delete feedbackGiven.value[recommendedItem]
+    feedbackItems.value.delete(recommendedItem)
   } finally {
     delete processingFeedback.value[recommendedItem]
   }
@@ -271,7 +281,7 @@ watch(
       fetchRecommendations()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 
@@ -490,6 +500,17 @@ watch(
   display: flex;
   gap: 0.5rem;
   margin-left: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  width: 5.5rem; /* 2 buttons + gap */
+}
+
+.feedback-buttons.centered-positive {
+  justify-content: center;
+}
+
+.feedback-buttons.centered-negative {
+  justify-content: center;
 }
 
 .feedback-btn {
@@ -502,7 +523,7 @@ watch(
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   padding: 0;
 }
 
@@ -570,25 +591,28 @@ watch(
 }
 
 /* Recommendation item transitions */
-.rec-fade-move,
-.rec-fade-enter-active,
-.rec-fade-leave-active {
+.rec-fade-move {
   transition: all 0.4s ease;
+}
+
+.rec-fade-enter-active {
+  transition: all 0.4s ease;
+}
+
+.rec-fade-leave-active {
+  transition: all 0.3s ease;
+  position: absolute;
+  width: calc(100% - 3rem);
 }
 
 .rec-fade-enter-from {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateX(30px) scale(0.9);
 }
 
 .rec-fade-leave-to {
   opacity: 0;
-  transform: translateX(-30px);
-}
-
-.rec-fade-leave-active {
-  position: absolute;
-  width: calc(100% - 3rem);
+  transform: translateX(-30px) scale(0.9);
 }
 
 @media (max-width: 768px) {
