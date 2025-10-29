@@ -14,6 +14,7 @@
 - user has valid scrobbleToken
 - timeRange is valid
 - count is non-negative
+- offset is non-negative
 
 **Effects:**
 - fetches and returns top artists for the user from ListenBrainz API for the specified time range, with pagination support. Each artist includes name, MBIDs, and listen count.
@@ -24,7 +25,8 @@
   "user": "ID",
   "scrobbleToken": "String",
   "timeRange": "String",
-  "count": "Number"
+  "count": "Number",
+  "offset": "Number (optional, defaults to 0)"
 }
 ```
 
@@ -107,6 +109,7 @@
 - user has valid scrobbleToken
 - timeRange is valid
 - count is non-negative
+- offset is non-negative
 
 **Effects:**
 - fetches and returns top releases (albums) for the user from ListenBrainz API for the specified time range, with pagination support. Each release includes name, artist, MBID, and listen count.
@@ -117,7 +120,8 @@
   "user": "ID",
   "scrobbleToken": "String",
   "timeRange": "String",
-  "count": "Number"
+  "count": "Number",
+  "offset": "Number (optional, defaults to 0)"
 }
 ```
 
@@ -162,6 +166,7 @@
 - user has valid scrobbleToken
 - timeRange is valid
 - count is non-negative
+- offset is non-negative
 
 **Effects:**
 - fetches and returns top release groups (album versions) for the user from ListenBrainz API for the specified time range. Each release group includes name, artist, MBID, cover art, and listen count.
@@ -172,7 +177,8 @@
   "user": "ID",
   "scrobbleToken": "String",
   "timeRange": "String",
-  "count": "Number"
+  "count": "Number",
+  "offset": "Number (optional, defaults to 0)"
 }
 ```
 
@@ -217,6 +223,7 @@
 - user has valid scrobbleToken
 - timeRange is valid
 - count is non-negative
+- offset is non-negative
 
 **Effects:**
 - fetches and returns top recordings (tracks/songs) for the user from ListenBrainz API for the specified time range. Each recording includes track name, artist, release, MBID, and listen count.
@@ -227,7 +234,8 @@
   "user": "ID",
   "scrobbleToken": "String",
   "timeRange": "String",
-  "count": "Number"
+  "count": "Number",
+  "offset": "Number (optional, defaults to 0)"
 }
 ```
 

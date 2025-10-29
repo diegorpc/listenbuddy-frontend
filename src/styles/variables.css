@@ -1,15 +1,18 @@
 :root {
   /* Text Colors */
-  --text-primary: #EBDBB2;
-  --text-secondary: #A89984;
-  
+  --text-primary: #e1d8c4;
+  --text-secondary: #a89984;
+
   /* Accent Colors */
   --accent-primary: #81a38e;
-  
+  --accent-primary-rgb: 129, 163, 142;
+  --accent-secondary: #d1a980;
+  --accent-secondary-rgb: 209, 169, 128;
+
   /* Background Colors */
   --bg-primary: #232525;
-  --bg-secondary: #1D2021;
-  --bg-accent: #A3BBAD;
+  --bg-secondary: #1e2221;
+  --bg-accent: #a3bbad;
 
   --card-bg: var(--bg-secondary);
 }

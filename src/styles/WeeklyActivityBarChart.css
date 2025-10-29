@@ -1,0 +1,108 @@
+/* WeeklyActivityBarChart Component Styles */
+.activity-chart {
+  padding: 2rem;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3rem;
+  text-shadow: 1px 1px var(--accent-primary);
+}
+
+.chart-loading,
+.chart-error {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-secondary);
+}
+
+.chart-error {
+  color: #e06c75;
+}
+
+.chart-container {
+  width: 100%;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 200px;
+  gap: 0.5rem;
+}
+
+.bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bar-container {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  width: 100%;
+  max-width: 60px;
+  background: linear-gradient(to top, var(--accent-primary), rgba(129, 163, 142, 0.6));
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s ease;
+  position: relative;
+  min-height: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+.bar:hover {
+  filter: brightness(1.2);
+  transform: scaleY(1.05);
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bg-primary);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.bar:hover .bar-label {
+  opacity: 1;
+}
+
+.day-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .chart-bars {
+    height: 150px;
+    gap: 0.25rem;
+  }
+
+  .bar-container {
+    height: 150px;
+  }
+
+  .bar {
+    max-width: 40px;
+  }
+
+  .day-label {
+    font-size: 0.75rem;
+  }
+}

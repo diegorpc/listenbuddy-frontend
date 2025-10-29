@@ -30,24 +30,24 @@ export interface GenerateRecommendationsParams {
     mbid: string
     name: string
     score: number
-    genres: string[]
+    sharedGenres: string[]
   }>
   similarRecordings?: Array<{
     mbid: string
     name: string
     score: number
-    genres: string[]
+    sharedGenres: string[]
   }>
   similarReleaseGroups?: Array<{
     mbid: string
     name: string
     score: number
-    genres: string[]
+    sharedGenres: string[]
   }>
 }
 
 export const generateRecommendations = async (
-  params: GenerateRecommendationsParams
+  params: GenerateRecommendationsParams,
 ): Promise<RecommendationItem[]> => {
   const response = await fetch(buildUrl('/api/Recommendation/generate'), {
     method: 'POST',
@@ -76,7 +76,9 @@ export interface RecommendationWithReasoning {
 export const getRecommendations = async (
   userId: string,
   item: string,
-  amount: number
+  amount: number,
+  feedbacked?: boolean,
+  ignore?: string[],
 ): Promise<RecommendationWithReasoning[]> => {
   const response = await fetch(buildUrl('/api/Recommendation/getRecommendations'), {
     method: 'POST',
@@ -87,6 +89,8 @@ export const getRecommendations = async (
       userId,
       item,
       amount,
+      ...(feedbacked !== undefined && { feedbacked }),
+      ...(ignore && ignore.length > 0 && { ignore }),
     }),
   })
 
@@ -102,7 +106,7 @@ export const getRecommendations = async (
 export const provideFeedback = async (
   userId: string,
   recommendedItem: string,
-  feedback: boolean
+  feedback: boolean,
 ): Promise<void> => {
   const response = await fetch(buildUrl('/api/Recommendation/provideFeedback'), {
     method: 'POST',
@@ -137,25 +141,31 @@ export const generateRecommendationsWithMetadata = async (
   sourceItemName: string,
   itemType: 'artist' | 'recording' | 'release-group',
   amount: number = 3,
-  mbid?: string | null
+  mbid?: string | null,
 ): Promise<RecommendationItem[]> => {
   try {
-    console.log(`[Recommendations] Generating recommendations for ${itemType}: "${sourceItemName}" (MBID: ${mbid || 'none - will search'})`)
-    
+    console.log(
+      `[Recommendations] Generating recommendations for ${itemType}: "${sourceItemName}" (MBID: ${mbid || 'none - will search'})`,
+    )
+
     // Fetch all metadata from MusicBrainz (backend handles rate limiting)
     const metadata = await fetchRecommendationMetadata(sourceItemName, itemType, mbid)
-    
+
     // Use the MBID from metadata as sourceItem (backend expects MBID)
     const sourceItemMBID = metadata.sourceItemMetadata.id
-    
+
     // Log the type-specific similar items being sent
-    const similarCount = 
-      itemType === 'artist' ? metadata.similarArtists.length :
-      itemType === 'recording' ? metadata.similarRecordings.length :
-      metadata.similarReleaseGroups.length
-    
-    console.log(`[Recommendations] Sending ${similarCount} similar ${itemType}s to backend for recommendation generation`)
-    
+    const similarCount =
+      itemType === 'artist'
+        ? metadata.similarArtists.length
+        : itemType === 'recording'
+          ? metadata.similarRecordings.length
+          : metadata.similarReleaseGroups.length
+
+    console.log(
+      `[Recommendations] Sending ${similarCount} similar ${itemType}s to backend for recommendation generation`,
+    )
+
     // Validate that we're only sending similar items of the correct type
     if (itemType === 'artist' && metadata.similarArtists.length === 0) {
       console.warn(`[Recommendations] No similar artists found for "${sourceItemName}"`)
@@ -164,7 +174,7 @@ export const generateRecommendationsWithMetadata = async (
     } else if (itemType === 'release-group' && metadata.similarReleaseGroups.length === 0) {
       console.warn(`[Recommendations] No similar release groups found for "${sourceItemName}"`)
     }
-    
+
     // Generate recommendations using the fetched metadata
     const recommendations = await generateRecommendations({
       userId,
@@ -172,11 +182,66 @@ export const generateRecommendationsWithMetadata = async (
       amount,
       ...metadata,
     })
-    
-    console.log(`[Recommendations] Successfully generated ${recommendations.length} recommendations`)
+
+    console.log(
+      `[Recommendations] Successfully generated ${recommendations.length} recommendations`,
+    )
     return recommendations
   } catch (error) {
-    console.error(`[Recommendations] Failed to generate recommendations for "${sourceItemName}":`, error)
+    console.error(
+      `[Recommendations] Failed to generate recommendations for "${sourceItemName}":`,
+      error,
+    )
     throw error
+  }
+}
+
+export interface FeedbackHistoryItem {
+  recommendationId: string
+  item: string
+  feedback: boolean
+  reasoning: string
+  sourceItem: string
+}
+
+export const getFeedbackHistory = async (
+  userId: string,
+  sourceItem?: string,
+): Promise<FeedbackHistoryItem[]> => {
+  const response = await fetch(buildUrl('/api/Recommendation/getFeedbackHistory'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      userId,
+      ...(sourceItem && { sourceItem }),
+    }),
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch feedback history')
+  }
+
+  return data.history || []
+}
+
+export const deleteRecommendation = async (recommendationId: string): Promise<void> => {
+  const response = await fetch(buildUrl('/api/Recommendation/deleteRecommendation'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      recommendationId,
+    }),
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete recommendation')
   }
 }

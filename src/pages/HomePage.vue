@@ -34,7 +34,12 @@
           <MusicalNoteIcon class="header-icon" />
           <h1>{{ listenBrainzName }}'s ListenBrainz Stats</h1>
         </div>
-        <button class="logout-btn" @click="handleLogout">Log Out</button>
+        <div class="header-actions">
+          <button class="recommendations-btn" @click="showMyRecommendations = true">
+            My Recommendations
+          </button>
+          <button class="logout-btn" @click="handleLogout">Log Out</button>
+        </div>
       </header>
 
       <div class="home-content">
@@ -78,24 +83,33 @@
         <!-- Top Lists -->
         <div class="top-lists-section">
           <TopListSelector
+            ref="topListSelector"
             :user-id="userId"
             :scrobble-token="scrobbleToken"
             :time-range="timeRange"
           />
         </div>
       </div>
+
+      <!-- My Recommendations Modal -->
+      <MyRecommendations
+        :show="showMyRecommendations"
+        :user-id="userId"
+        @close="showMyRecommendations = false"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/auth'
 import { buildUrl } from '../services/apiRequests'
 import TopListSelector from '../components/TopListSelector.vue'
 import StatCard from '../components/StatCard.vue'
 import WeeklyActivityBarChart from '../components/WeeklyActivityBarChart.vue'
+import MyRecommendations from '../components/MyRecommendations.vue'
 import { MusicalNoteIcon } from '@heroicons/vue/24/outline'
 interface DailyActivityResponse {
   dailyActivity: Record<string, Array<{ hour: number; listen_count: number }>>
@@ -126,6 +140,8 @@ const listenHoursChange = ref<number | null>(null)
 const dailyPlaysChange = ref<number | null>(null)
 const statsLoading = ref(false)
 const statsError = ref(false)
+const topListSelector = ref<InstanceType<typeof TopListSelector> | null>(null)
+const showMyRecommendations = ref(false)
 
 const hasScrobbleToken = computed(() => {
   return scrobbleToken.value !== ''
@@ -254,6 +270,17 @@ const handleLogout = async () => {
   router.push('/')
 }
 
+const handleScroll = () => {
+  if (!topListSelector.value) return
+
+  const scrollPosition = window.scrollY + window.innerHeight
+  const scrollThreshold = document.documentElement.scrollHeight - 300
+
+  if (scrollPosition >= scrollThreshold) {
+    topListSelector.value.loadMore()
+  }
+}
+
 // Watch for time range changes
 watch(timeRange, () => {
   if (hasScrobbleToken.value) {
@@ -266,6 +293,20 @@ watch(hasScrobbleToken, (newVal) => {
   if (newVal) {
     fetchActivityStats()
   }
+})
+
+// Add scroll listener when component mounts
+watch(hasScrobbleToken, (newVal) => {
+  if (newVal) {
+    window.addEventListener('scroll', handleScroll)
+  } else {
+    window.removeEventListener('scroll', handleScroll)
+  }
+})
+
+// Cleanup scroll listener
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 

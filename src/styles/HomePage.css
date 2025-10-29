@@ -38,6 +38,13 @@
   margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.recommendations-btn,
 .logout-btn {
   font-family: 'Lexend', sans-serif;
   padding: 0.625rem 1.25rem;
@@ -53,6 +60,7 @@
   letter-spacing: 0.5px;
 }
 
+.recommendations-btn:hover,
 .logout-btn:hover {
   background-color: var(--accent-primary);
   color: var(--text-primary);
@@ -240,6 +248,11 @@
     padding: 2rem 1.5rem;
   }
 
+  .header-actions {
+    gap: 0.5rem;
+  }
+
+  .recommendations-btn,
   .logout-btn {
     padding: 0.5rem 1rem;
     font-size: 0.75rem;

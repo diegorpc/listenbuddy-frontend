@@ -22,7 +22,12 @@ body {
   background-color: var(--bg-secondary);
   border-radius: 12px;
   padding: 2.5rem;
-  box-shadow: 0 4px 20px rgba(129, 163, 142, 0.15);
+  box-shadow: 0 4px 20px rgba(var(--accent-secondary-rgb), 0.15);
   transition: all 0.3s ease;
   width: 100%;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(var(--accent-primary-rgb), 0.25);
 }

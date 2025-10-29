@@ -5,7 +5,11 @@
       <button
         v-for="category in categories"
         :key="category"
-        :class="['chip', { active: selectedCategory === category }]"
+        :class="[
+          'chip',
+          { active: selectedCategory === category, disabled: loading || loadingMore },
+        ]"
+        :disabled="loading || loadingMore"
         @click="selectCategory(category)"
       >
         {{ category }}
@@ -30,6 +34,7 @@
           v-for="(item, index) in items"
           :key="index"
           class="list-item card"
+          :class="{ 'fade-in-item': item.isNew }"
           @click="openRecommendationModal(item)"
         >
           <div class="item-image-container" v-if="item.imageUrl">
@@ -52,6 +57,17 @@
           </div>
           <div class="item-plays">{{ item.plays }} plays</div>
         </div>
+
+        <!-- Loading More Indicator -->
+        <div v-if="loadingMore" class="loading-more">
+          <div class="spinner"></div>
+          <p>Loading more...</p>
+        </div>
+
+        <!-- End of List Indicator -->
+        <div v-else-if="!hasMore && items.length > 0" class="end-of-list">
+          <p>That's all your {{ selectedCategory.toLowerCase() }}!</p>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -66,6 +82,7 @@
       :source-item="selectedItem?.name || ''"
       :source-item-name="selectedItem?.name || ''"
       :source-item-mbid="selectedItem?.mbid || null"
+      :source-item-image-url="selectedItem?.imageUrl || null"
       :user-id="userId"
       :item-type="currentItemType"
       @close="closeModal"
@@ -74,9 +91,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { buildUrl } from '../services/apiRequests'
 import RecommendationModal from './RecommendationModal.vue'
+import '../styles/TopListSelector.css'
 
 interface ListItem {
   name: string
@@ -84,6 +102,7 @@ interface ListItem {
   plays: number
   imageUrl?: string | null
   mbid?: string | null
+  isNew?: boolean
 }
 
 interface Recording {
@@ -110,7 +129,15 @@ interface Release {
   release_group_mbid?: string | null
 }
 
-type ApiItem = Recording | Artist | Release
+interface ReleaseGroup {
+  release_group_name: string
+  artist_name: string
+  listen_count: number
+  caa_release_mbid?: string | null
+  release_group_mbid?: string | null
+}
+
+type ApiItem = Recording | Artist | Release | ReleaseGroup
 
 const props = defineProps<{
   userId: string
@@ -122,10 +149,13 @@ const categories = ['Tracks', 'Artists', 'Albums']
 const selectedCategory = ref<string>('Tracks')
 const items = ref<ListItem[]>([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const showModal = ref(false)
 const selectedItem = ref<ListItem | null>(null)
 const imageLoadedStates = ref<Record<number, boolean>>({})
+const offset = ref(0)
+const hasMore = ref(true)
 
 // Extract userId from props
 const userId = props.userId
@@ -148,6 +178,7 @@ const updateItemType = () => {
 }
 
 const selectCategory = (category: string) => {
+  if (loading.value || loadingMore.value) return
   selectedCategory.value = category
   updateItemType()
 }
@@ -162,8 +193,16 @@ const closeModal = () => {
   selectedItem.value = null
 }
 
-const fetchTopItems = async () => {
-  loading.value = true
+const fetchTopItems = async (append = false) => {
+  if (append) {
+    loadingMore.value = true
+  } else {
+    loading.value = true
+    offset.value = 0
+    hasMore.value = true
+    items.value = []
+    imageLoadedStates.value = {}
+  }
   error.value = null
 
   try {
@@ -180,8 +219,8 @@ const fetchTopItems = async () => {
         responseKey = 'artists'
         break
       case 'Albums':
-        endpoint = '/api/ListenBrainzAPI/getTopReleases'
-        responseKey = 'releases'
+        endpoint = '/api/ListenBrainzAPI/getTopReleaseGroups'
+        responseKey = 'releaseGroups'
         break
     }
 
@@ -195,6 +234,7 @@ const fetchTopItems = async () => {
         scrobbleToken: props.scrobbleToken,
         timeRange: props.timeRange || 'this_month',
         count: 10,
+        offset: append ? offset.value : 0,
       }),
     })
 
@@ -205,9 +245,13 @@ const fetchTopItems = async () => {
     }
 
     const rawItems: ApiItem[] = data[responseKey] || []
-    // Reset image loaded states for new list
-    imageLoadedStates.value = {}
-    items.value = rawItems.map((item: ApiItem) => {
+
+    // Check if we have more items to load
+    if (rawItems.length < 10) {
+      hasMore.value = false
+    }
+
+    const newItems: ListItem[] = rawItems.map((item: ApiItem) => {
       if (selectedCategory.value === 'Tracks' && 'track_name' in item) {
         const mbid = item.caa_release_mbid || item.release_mbid
         const imageUrl = mbid ? `https://coverartarchive.org/release/${mbid}/front-250` : null
@@ -217,13 +261,32 @@ const fetchTopItems = async () => {
           plays: item.listen_count,
           imageUrl,
           mbid: item.recording_mbid,
+          isNew: append,
         }
-      } else if (selectedCategory.value === 'Artists' && 'artist_name' in item && !('track_name' in item) && !('release_name' in item)) {
+      } else if (
+        selectedCategory.value === 'Artists' &&
+        'artist_name' in item &&
+        !('track_name' in item) &&
+        !('release_name' in item) &&
+        !('release_group_name' in item)
+      ) {
         return {
           name: item.artist_name,
           plays: item.listen_count,
           imageUrl: null,
           mbid: item.artist_mbid,
+          isNew: append,
+        }
+      } else if ('release_group_name' in item) {
+        const mbid = item.caa_release_mbid
+        const imageUrl = mbid ? `https://coverartarchive.org/release/${mbid}/front-250` : null
+        return {
+          name: item.release_group_name,
+          artist: item.artist_name,
+          plays: item.listen_count,
+          imageUrl,
+          mbid: item.release_group_mbid,
+          isNew: append,
         }
       } else if ('release_name' in item) {
         const mbid = item.caa_release_mbid || item.release_mbid
@@ -234,6 +297,7 @@ const fetchTopItems = async () => {
           plays: item.listen_count,
           imageUrl,
           mbid: item.release_group_mbid,
+          isNew: append,
         }
       }
       return {
@@ -241,214 +305,59 @@ const fetchTopItems = async () => {
         plays: item.listen_count,
         imageUrl: null,
         mbid: null,
+        isNew: append,
       }
     })
+
+    if (append) {
+      items.value = [...items.value, ...newItems]
+      offset.value += newItems.length
+
+      // Remove isNew flag after animation
+      await nextTick()
+      setTimeout(() => {
+        items.value = items.value.map((item) => ({ ...item, isNew: false }))
+      }, 50)
+    } else {
+      items.value = newItems
+      offset.value = newItems.length
+    }
   } catch (err) {
     console.error('Error fetching top items:', err)
     error.value = err instanceof Error ? err.message : 'Failed to load data'
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
+
+const loadMore = () => {
+  if (loadingMore.value || !hasMore.value) return
+  fetchTopItems(true)
+}
+
+// Expose loadMore function to parent
+defineExpose({
+  loadMore,
+  hasMore,
+  loadingMore,
+})
 
 // Watch for category changes
 watch(selectedCategory, () => {
-  fetchTopItems()
+  fetchTopItems(false)
 })
 
 // Watch for time range changes (if implemented later)
-watch(() => props.timeRange, () => {
-  fetchTopItems()
-})
+watch(
+  () => props.timeRange,
+  () => {
+    fetchTopItems(false)
+  },
+)
 
 // Initial fetch
 onMounted(() => {
-  fetchTopItems()
+  fetchTopItems(false)
 })
 </script>
-
-<style scoped>
-.top-list-selector {
-  width: 100%;
-}
-
-.chip-container {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  justify-content: space-around;
-}
-
-.chip {
-  font-family: 'Lexend', sans-serif;
-  padding: 0.625rem 1.5rem;
-  background-color: transparent;
-  color: var(--text-secondary);
-  border: 2px solid var(--text-secondary);
-  border-radius: 24px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: capitalize;
-  width: 300px;
-}
-
-.chip:hover {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  transform: translateY(-2px);
-}
-
-.chip.active {
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  border-color: var(--accent-primary);
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: 3rem 2rem;
-  color: var(--text-secondary);
-}
-
-.error-state {
-  color: #e06c75;
-}
-
-.list-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 1.25rem 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.list-item:hover {
-  transform: translateX(8px);
-  box-shadow: 0 6px 24px rgba(129, 163, 142, 0.2);
-}
-
-.item-image-container {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-primary);
-  border-radius: 6px;
-}
-
-.item-image {
-  width: 64px;
-  height: 64px;
-  border-radius: 6px;
-  object-fit: cover;
-  transition: opacity 0.3s ease;
-}
-
-.item-image.image-hidden {
-  opacity: 0;
-  position: absolute;
-}
-
-.image-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(129, 163, 142, 0.3);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.item-rank {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  min-width: 3rem;
-  text-align: center;
-}
-
-.item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-name {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-artist {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-plays {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  white-space: nowrap;
-}
-
-@media (max-width: 768px) {
-  .list-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .item-rank {
-    min-width: auto;
-  }
-
-  .item-plays {
-    align-self: flex-end;
-  }
-}
-
-/* Fade transition */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

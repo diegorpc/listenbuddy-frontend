@@ -38,7 +38,7 @@ interface SimilarReleaseGroup {
 export const searchEntity = async (
   query: string,
   entityType: 'artist' | 'recording' | 'release-group',
-  limit: number = 1
+  limit: number = 1,
 ): Promise<SearchResult[]> => {
   const response = await fetch(buildUrl('/api/MusicBrainzAPI/searchEntities'), {
     method: 'POST',
@@ -63,7 +63,7 @@ export const searchEntity = async (
 
 export const getEntityGenres = async (
   mbid: string,
-  entityType: 'artist' | 'recording' | 'release' | 'release-group'
+  entityType: 'artist' | 'recording' | 'release' | 'release-group',
 ): Promise<{ genres: GenreTag[]; tags: GenreTag[] }> => {
   const response = await fetch(buildUrl('/api/MusicBrainzAPI/getEntityGenres'), {
     method: 'POST',
@@ -90,7 +90,7 @@ export const getEntityGenres = async (
 
 export const getSimilarArtists = async (
   artistMbid: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<SimilarArtist[]> => {
   const response = await fetch(buildUrl('/api/MusicBrainzAPI/getArtistSimilarities'), {
     method: 'POST',
@@ -114,7 +114,7 @@ export const getSimilarArtists = async (
 
 export const getSimilarRecordings = async (
   recordingMbid: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<SimilarRecording[]> => {
   const response = await fetch(buildUrl('/api/MusicBrainzAPI/getSimilarRecordings'), {
     method: 'POST',
@@ -138,7 +138,7 @@ export const getSimilarRecordings = async (
 
 export const getSimilarReleaseGroups = async (
   releaseGroupMbid: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<SimilarReleaseGroup[]> => {
   const response = await fetch(buildUrl('/api/MusicBrainzAPI/getSimilarReleaseGroups'), {
     method: 'POST',
@@ -164,19 +164,19 @@ export const getSimilarReleaseGroups = async (
 export const fetchRecommendationMetadata = async (
   itemName: string,
   itemType: 'artist' | 'recording' | 'release-group',
-  mbid?: string | null
+  mbid?: string | null,
 ) => {
   // Step 1: Get MBID (use provided one or search for it)
   let entityMbid: string
   let entityName: string = itemName
-  
+
   if (mbid) {
     // Use the provided MBID directly
     entityMbid = mbid
   } else {
     // Search for the item to get its MBID
     const searchResults = await searchEntity(itemName, itemType, 1)
-    
+
     if (searchResults.length === 0) {
       throw new Error(`No ${itemType} found for "${itemName}"`)
     }
@@ -188,7 +188,9 @@ export const fetchRecommendationMetadata = async (
 
   // Step 2: Get genres and tags for the item
   const { genres, tags } = await getEntityGenres(entityMbid, itemType)
-  console.log(`[MusicBrainz] Fetched ${genres.length} genres and ${tags.length} tags for ${entityName} (${entityMbid})`)
+  console.log(
+    `[MusicBrainz] Fetched ${genres.length} genres and ${tags.length} tags for ${entityName} (${entityMbid})`,
+  )
 
   // Step 3: Get similar items based on type - ONLY fetch items of the same type as source
   // This ensures recommendations are type-consistent (artists -> artists, recordings -> recordings, etc.)
@@ -221,27 +223,36 @@ export const fetchRecommendationMetadata = async (
       type: itemType,
       disambiguation: '',
       description: '',
-      genres: genres.map(g => ({ name: g.name, count: g.count })),
-      tags: tags.map(t => ({ name: t.name, count: t.count })),
+      genres: genres.map((g) => ({ name: g.name, count: g.count })),
+      tags: tags.map((t) => ({ name: t.name, count: t.count })),
     },
     // Only populate the array that matches the source type
-    similarArtists: itemType === 'artist' ? similarArtists.map(a => ({
-      mbid: a.mbid,
-      name: a.name,
-      score: a.score,
-      genres: a.sharedGenres,
-    })) : [],
-    similarRecordings: itemType === 'recording' ? similarRecordings.map(r => ({
-      mbid: r.mbid,
-      name: r.title,
-      score: r.score,
-      genres: r.sharedGenres,
-    })) : [],
-    similarReleaseGroups: itemType === 'release-group' ? similarReleaseGroups.map(rg => ({
-      mbid: rg.mbid,
-      name: rg.title,
-      score: rg.score,
-      genres: rg.sharedGenres,
-    })) : [],
+    similarArtists:
+      itemType === 'artist'
+        ? similarArtists.map((a) => ({
+            mbid: a.mbid,
+            name: a.name,
+            score: a.score,
+            sharedGenres: a.sharedGenres,
+          }))
+        : [],
+    similarRecordings:
+      itemType === 'recording'
+        ? similarRecordings.map((r) => ({
+            mbid: r.mbid,
+            name: r.title,
+            score: r.score,
+            sharedGenres: r.sharedGenres,
+          }))
+        : [],
+    similarReleaseGroups:
+      itemType === 'release-group'
+        ? similarReleaseGroups.map((rg) => ({
+            mbid: rg.mbid,
+            name: rg.title,
+            score: rg.score,
+            sharedGenres: rg.sharedGenres,
+          }))
+        : [],
   }
 }
