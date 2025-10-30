@@ -1,4 +1,4 @@
-const rawApiUrl = import.meta.env.VITE_API_URL ?? ''
+const rawApiUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 const normalizedApiUrl = rawApiUrl.replace(/\/$/, '')
 const useProxy = /^https?:\/\/localhost(?::\d+)?$/.test(normalizedApiUrl)
 
