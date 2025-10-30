@@ -153,8 +153,8 @@ const fetchActivityData = async () => {
     const cursor = new Date(from)
     while (cursor <= to) {
       const jsDay = cursor.getUTCDay() // 0=Sun..6=Sat
-      const name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][jsDay]
-      occurrencesPerWeekday.set(name, (occurrencesPerWeekday.get(name) || 0) + 1)
+      const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][jsDay]!
+      occurrencesPerWeekday.set(dayName, (occurrencesPerWeekday.get(dayName) || 0) + 1)
       cursor.setUTCDate(cursor.getUTCDate() + 1)
     }
 
@@ -174,7 +174,9 @@ const fetchActivityData = async () => {
       const occ = Math.max(occurrencesPerWeekday.get(weekday) || 1, 1)
       const avg = Math.round(total / occ)
       const idx = dayIndexMap[weekday]
-      days.value[idx].count = avg
+      if (idx !== undefined && days.value[idx]) {
+        days.value[idx].count = avg
+      }
     })
 
   } catch (err) {

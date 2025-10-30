@@ -182,6 +182,9 @@ export const fetchRecommendationMetadata = async (
     }
 
     const item = searchResults[0]
+    if (!item) {
+      throw new Error(`No valid ${itemType} found for "${itemName}"`)
+    }
     entityMbid = item.id
     entityName = item.name || item.title || itemName
   }
