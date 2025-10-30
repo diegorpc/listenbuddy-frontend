@@ -8,7 +8,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiUrl = env.VITE_API_URL?.replace(/\/$/, '')
+  const apiUrl = env.VITE_API_BASE_URL?.replace(/\/$/, '')
   const shouldProxy = Boolean(apiUrl && /^https?:\/\/localhost(?::\d+)?$/.test(apiUrl))
 
   const serverConfig: Record<string, unknown> = {
