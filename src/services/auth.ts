@@ -69,7 +69,7 @@ export const authService = {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ user: user }),
+          body: JSON.stringify({ user: user.userID }),
         })
       } catch (error) {
         console.error('Logout API call failed:', error)
