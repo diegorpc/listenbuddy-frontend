@@ -54,6 +54,11 @@ export const searchEntity = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (for consistency with other services)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to search entity')
   }
@@ -77,6 +82,11 @@ export const getEntityGenres = async (
   })
 
   const data = await response.json()
+
+  // Check for errors in response body (for consistency with other services)
+  if (data.error) {
+    throw new Error(data.error)
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to get entity genres')
@@ -105,6 +115,11 @@ export const getSimilarArtists = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (for consistency with other services)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to get similar artists')
   }
@@ -129,6 +144,11 @@ export const getSimilarRecordings = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (for consistency with other services)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to get similar recordings')
   }
@@ -152,6 +172,11 @@ export const getSimilarReleaseGroups = async (
   })
 
   const data = await response.json()
+
+  // Check for errors in response body (for consistency with other services)
+  if (data.error) {
+    throw new Error(data.error)
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to get similar release groups')

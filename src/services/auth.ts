@@ -48,6 +48,11 @@ export const authService = {
 
     const data = await response.json()
 
+    // Check for errors in response body (since errors now return 200 status)
+    if (data.error) {
+      throw new Error(data.error)
+    }
+
     const userID = data.user
     const listenBrainzName = data.listenBrainzName
     const scrobbleToken = data.scrobbleToken
@@ -121,6 +126,11 @@ export const authService = {
     })
 
     const data = await response.json()
+
+    // Check for errors in response body (since errors now return 200 status)
+    if (data.error) {
+      throw new Error(data.error)
+    }
 
     if (!response.ok) {
       throw new Error(data.error || 'Failed to associate token')

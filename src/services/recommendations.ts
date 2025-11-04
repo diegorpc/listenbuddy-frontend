@@ -59,6 +59,11 @@ export const generateRecommendations = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (since errors now return 200 status)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to generate recommendations')
   }
@@ -96,6 +101,11 @@ export const getRecommendations = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (since errors now return 200 status)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to fetch recommendations')
   }
@@ -121,6 +131,11 @@ export const provideFeedback = async (
   })
 
   const data = await response.json()
+
+  // Check for errors in response body (since errors now return 200 status)
+  if (data.error) {
+    throw new Error(data.error)
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to provide feedback')
@@ -221,6 +236,11 @@ export const getFeedbackHistory = async (
 
   const data = await response.json()
 
+  // Check for errors in response body (since errors now return 200 status)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+
   if (!response.ok) {
     throw new Error(data.error || 'Failed to fetch feedback history')
   }
@@ -240,6 +260,11 @@ export const deleteRecommendation = async (recommendationId: string): Promise<vo
   })
 
   const data = await response.json()
+
+  // Check for errors in response body (since errors now return 200 status)
+  if (data.error) {
+    throw new Error(data.error)
+  }
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to delete recommendation')
