@@ -2,6 +2,9 @@
   <div class="home-container">
     <!-- Token Input View -->
     <div v-if="!hasScrobbleToken" class="token-input-section">
+      <div class="token-header">
+        <button class="logout-btn" @click="handleLogout">Log Out</button>
+      </div>
       <div class="token-card card">
         <h2>Connect Your ListenBrainz Account</h2>
         <p>
@@ -19,12 +22,9 @@
               required
             />
           </div>
-          <div class="form-actions">
-            <button type="submit" class="submit-btn" :disabled="submitting">
-              {{ submitting ? 'Validating...' : 'Connect' }}
-            </button>
-            <button type="button" class="logout-btn" @click="handleLogout">Log Out</button>
-          </div>
+          <button type="submit" class="submit-btn" :disabled="submitting">
+            {{ submitting ? 'Validating...' : 'Connect' }}
+          </button>
           <p v-if="tokenError" class="error-message">{{ tokenError }}</p>
         </form>
       </div>

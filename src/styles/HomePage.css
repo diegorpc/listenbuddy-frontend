@@ -83,6 +83,34 @@
   justify-content: center;
   min-height: 60vh;
   gap: 2rem;
+  position: relative;
+}
+
+.token-header {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+}
+
+.token-header .logout-btn {
+  font-family: 'Lexend', sans-serif;
+  padding: 0.625rem 1.25rem;
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: 2px solid var(--accent-primary);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.token-header .logout-btn:hover {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: translateY(-2px);
 }
 
 .token-card {
@@ -108,33 +136,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  align-items: center;
-  margin-top: 1rem;
-}
-
-.form-actions .logout-btn {
-  font-family: 'Lexend', sans-serif;
-  padding: 0.875rem 2rem;
-  background-color: transparent;
-  color: var(--accent-primary);
-  border: 2px solid var(--accent-primary);
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.form-actions .logout-btn:hover {
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  transform: translateY(-2px);
 }
 
 .input-group {
@@ -275,14 +276,14 @@
     padding: 2rem 1.5rem;
   }
 
-  .form-actions {
-    flex-direction: column;
-    gap: 0.75rem;
+  .token-header {
+    top: 1rem;
+    right: 1rem;
   }
 
-  .form-actions .logout-btn {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
+  .token-header .logout-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
   }
 
   .header-actions {
