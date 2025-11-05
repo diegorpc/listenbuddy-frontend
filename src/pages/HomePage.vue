@@ -19,9 +19,12 @@
               required
             />
           </div>
-          <button type="submit" class="submit-btn" :disabled="submitting">
-            {{ submitting ? 'Validating...' : 'Connect' }}
-          </button>
+          <div class="form-actions">
+            <button type="submit" class="submit-btn" :disabled="submitting">
+              {{ submitting ? 'Validating...' : 'Connect' }}
+            </button>
+            <button type="button" class="logout-btn" @click="handleLogout">Log Out</button>
+          </div>
           <p v-if="tokenError" class="error-message">{{ tokenError }}</p>
         </form>
       </div>

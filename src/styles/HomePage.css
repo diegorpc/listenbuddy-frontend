@@ -110,6 +110,33 @@
   gap: 1rem;
 }
 
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.form-actions .logout-btn {
+  font-family: 'Lexend', sans-serif;
+  padding: 0.875rem 2rem;
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: 2px solid var(--accent-primary);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.form-actions .logout-btn:hover {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  transform: translateY(-2px);
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
@@ -246,6 +273,16 @@
 
   .token-card {
     padding: 2rem 1.5rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .form-actions .logout-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
   }
 
   .header-actions {
